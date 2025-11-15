@@ -1,6 +1,6 @@
 # 🚁 CASTA
 
-**Cognitive Aerial Spatio-Temporal Analysis**
+**AI-Driven Cognitive Aerial Spatio-Temporal Analysis**
 
 *AI-Driven Cognitive Spatio-Temporal Analysis of Aerial Threats*
 

@@ -1,0 +1,25 @@
+# Hybrid Drone Threat Analysis System Requirements
+# Python 3.8+
+
+# Core Detection
+ultralytics>=8.0.0
+roboflow>=1.1.0
+inference>=0.9.0
+supervision>=0.16.0
+
+# Computer Vision
+opencv-python>=4.8.0
+Pillow>=10.0.0
+
+# AI/ML
+torch>=2.0.0
+torchvision>=0.15.0
+numpy>=1.24.0
+
+# Gemini Vision API
+google-generativeai>=0.3.0
+
+# Utilities
+python-dotenv>=1.0.0
+pyyaml>=6.0
+tqdm>=4.65.0

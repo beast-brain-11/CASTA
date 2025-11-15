@@ -1,0 +1,47 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+env/
+venv/
+.venv/
+ENV/
+
+# Results
+threat_analysis_results/
+*.mp4
+*.avi
+*.mov
+*.jpg
+*.jpeg
+*.png
+*.json
+
+# Exceptions (keep test images)
+!test*.jpg
+!test*.jpeg
+!test*.png
+
+# Model weights
+*.pt
+*.pth
+*.weights
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+
+# Environment
+.env
+.env.local

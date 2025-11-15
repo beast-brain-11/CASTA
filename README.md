@@ -295,20 +295,6 @@ python app.py --source long_video.mp4 --no-gemini --conf 0.5
 
 ---
 
-## 📈 Performance
-
-**Processing Speed:**
-- Image: ~0.1-0.3s per image (with Gemini)
-- Video: ~15-25 FPS on GPU (NVIDIA RTX 4060)
-- Camera: Real-time 20-30 FPS
-
-**Gemini API:**
-- Only called for HIGH/CRITICAL threats (selective)
-- Typical: 2-5 calls per 100 frames in normal scenarios
-- Max rate: ~40 calls/minute (API limits apply)
-
----
-
 ## 🛠️ Technical Stack
 
 - **Detection**: Roboflow YOLOv12 (object detection API)
@@ -339,26 +325,6 @@ python app.py --source long_video.mp4 --no-gemini --conf 0.5
 
 ---
 
-## 🚀 Future Enhancements
-
-- [ ] Multi-camera fusion
-- [ ] Dedicated payload detection model (Stage 2)
-- [ ] ML-based threat classifier (replace rules)
-- [ ] Alert system (webhooks, notifications)
-- [ ] Web dashboard (FastAPI + React)
-- [ ] Drone trajectory prediction
-- [ ] Integration with radar/RF sensors
-
----
-
-## 📄 License
-
-This is a research/educational project. 
-
-**Dataset Credits:**
-- Roboflow Model: `drone-and-bird-detection-kewte/1`
-
----
 
 ## 🤝 Support
 

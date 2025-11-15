@@ -22,6 +22,10 @@ from typing import Dict, List, Tuple, Optional
 import google.generativeai as genai
 from PIL import Image
 import io
+from dotenv import load_dotenv
+
+# Load environment variables from .env file
+load_dotenv()
 
 # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 # CONFIGURATION
@@ -29,10 +33,14 @@ import io
 
 # Roboflow Configuration
 MODEL_ID = "drone-and-bird-detection-kewte/1"
-ROBOFLOW_API_KEY = "AeOszGIJLIVEVQrWumtC"
+ROBOFLOW_API_KEY = os.getenv("ROBOFLOW_API_KEY")
+if not ROBOFLOW_API_KEY:
+    raise ValueError("ROBOFLOW_API_KEY not found in environment variables. Please check your .env file.")
 
 # Gemini Configuration
-GEMINI_API_KEY = "AIzaSyCWarDz_noMA_D8LQC8iossZ1zhD7474qw"
+GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
+if not GEMINI_API_KEY:
+    raise ValueError("GEMINI_API_KEY not found in environment variables. Please check your .env file.")
 GEMINI_MODEL = "gemini-flash-latest"
 
 # Output Configuration

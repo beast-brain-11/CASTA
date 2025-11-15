@@ -43,12 +43,26 @@ Combines Roboflow YOLOv12 object detection with Google Gemini Vision AI for inte
 ### Installation
 
 ```bash
-# Install dependencies
+# 1. Clone the repository
+git clone https://github.com/beast-brain-11/CASTA.git
+cd CASTA
+
+# 2. Install dependencies
 pip install -r requirements.txt
 
-# Or install manually
-pip install ultralytics roboflow inference supervision opencv-python google-generativeai pillow torch
+# 3. Set up environment variables
+# Copy .env.example to .env
+cp .env.example .env
+
+# 4. Add your API keys to .env file
+# Edit .env and add:
+# ROBOFLOW_API_KEY=your_roboflow_key_here
+# GEMINI_API_KEY=your_gemini_key_here
 ```
+
+**Get API Keys:**
+- **Roboflow API Key**: Sign up at [Roboflow](https://app.roboflow.com/) → Settings → API Keys
+- **Gemini API Key**: Get from [Google AI Studio](https://ai.google.dev/)
 
 ### Usage
 
@@ -203,15 +217,20 @@ All results saved to `threat_analysis_results/`:
 ## ⚙️ Configuration
 
 ### API Keys
-The app uses hardcoded keys (for testing):
-- **Roboflow API**: `AeOszGIJLIVEVQrWumtC`
-- **Gemini API**: `AIzaSyCWarDz_noMA_D8LQC8iossZ1zhD7474qw`
+**Important:** The API keys are stored in a `.env` file (not tracked by Git).
 
-For production, use environment variables:
-```python
-ROBOFLOW_API_KEY = os.getenv('ROBOFLOW_API_KEY')
-GEMINI_API_KEY = os.getenv('GEMINI_API_KEY')
+**Setup:**
+1. Copy `.env.example` to `.env`
+2. Add your API keys to `.env`:
+```env
+ROBOFLOW_API_KEY=your_roboflow_api_key_here
+GEMINI_API_KEY=your_gemini_api_key_here
 ```
+
+**Security Note:** 
+- Never commit `.env` to Git
+- The `.gitignore` file already excludes `.env`
+- Share `.env.example` (template) with your team, not `.env` (actual keys)
 
 ### Threat Thresholds
 Edit in `app.py`:

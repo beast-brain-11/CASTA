@@ -24,15 +24,6 @@ from PIL import Image
 import io
 from dotenv import load_dotenv
 import torch
-from reportlab.lib.pagesizes import letter, A4
-from reportlab.lib import colors
-from reportlab.lib.units import inch
-from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph, Spacer, PageBreak, Image as RLImage
-from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
-from reportlab.lib.enums import TA_CENTER, TA_LEFT
-import matplotlib.pyplot as plt
-import matplotlib
-matplotlib.use('Agg')  # Non-interactive backend
 
 # Load environment variables from .env file
 load_dotenv()
@@ -76,258 +67,6 @@ def detect_gpu():
         return False
 
 # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-# PDF REPORT GENERATOR
-# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-
-class PDFReportGenerator:
-    """Generate PDF reports with screenshots and threat analysis"""
-    
-    def __init__(self, output_dir: Path):
-        self.output_dir = output_dir
-        self.styles = getSampleStyleSheet()
-        
-        # Custom styles
-        self.title_style = ParagraphStyle(
-            'CustomTitle',
-            parent=self.styles['Heading1'],
-            fontSize=24,
-            textColor=colors.HexColor('#1a1a1a'),
-            spaceAfter=30,
-            alignment=TA_CENTER,
-            fontName='Helvetica-Bold'
-        )
-        
-        self.heading_style = ParagraphStyle(
-            'CustomHeading',
-            parent=self.styles['Heading2'],
-            fontSize=16,
-            textColor=colors.HexColor('#2c3e50'),
-            spaceAfter=12,
-            spaceBefore=12,
-            fontName='Helvetica-Bold'
-        )
-    
-    def generate_report(self, video_path: str, stats: Dict, detections_log: List, 
-                       annotated_frames: List[Tuple[int, np.ndarray]], output_path: str = None):
-        """Generate comprehensive PDF report"""
-        
-        if output_path is None:
-            timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-            output_path = self.output_dir / f"threat_report_{timestamp}.pdf"
-        
-        # Create PDF document
-        doc = SimpleDocTemplate(
-            str(output_path),
-            pagesize=letter,
-            rightMargin=0.75*inch,
-            leftMargin=0.75*inch,
-            topMargin=0.75*inch,
-            bottomMargin=0.75*inch
-        )
-        
-        story = []
-        
-        # Title Page
-        story.append(Spacer(1, 0.5*inch))
-        title = Paragraph("CASTA THREAT ANALYSIS REPORT", self.title_style)
-        story.append(title)
-        story.append(Spacer(1, 0.3*inch))
-        
-        # Report metadata
-        meta_data = [
-            ["Report Generated:", datetime.now().strftime("%Y-%m-%d %H:%M:%S")],
-            ["Video Source:", os.path.basename(video_path)],
-            ["Total Frames Analyzed:", str(stats.get('total_frames', 0))],
-            ["Total Detections:", str(stats.get('total_detections', 0))],
-            ["Gemini API Calls:", str(stats.get('gemini_calls', 0))]
-        ]
-        
-        meta_table = Table(meta_data, colWidths=[2.5*inch, 4*inch])
-        meta_table.setStyle(TableStyle([
-            ('BACKGROUND', (0, 0), (0, -1), colors.HexColor('#ecf0f1')),
-            ('TEXTCOLOR', (0, 0), (-1, -1), colors.black),
-            ('ALIGN', (0, 0), (-1, -1), 'LEFT'),
-            ('FONTNAME', (0, 0), (0, -1), 'Helvetica-Bold'),
-            ('FONTNAME', (1, 0), (1, -1), 'Helvetica'),
-            ('FONTSIZE', (0, 0), (-1, -1), 10),
-            ('GRID', (0, 0), (-1, -1), 0.5, colors.grey),
-            ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
-            ('TOPPADDING', (0, 0), (-1, -1), 8),
-            ('BOTTOMPADDING', (0, 0), (-1, -1), 8),
-        ]))
-        story.append(meta_table)
-        story.append(Spacer(1, 0.5*inch))
-        
-        # Threat Distribution Section
-        story.append(Paragraph("Threat Distribution", self.heading_style))
-        story.append(Spacer(1, 0.2*inch))
-        
-        threat_counts = stats.get('threat_counts', {})
-        threat_data = [["Threat Level", "Count", "Percentage"]]
-        total = sum(threat_counts.values()) or 1
-        
-        threat_colors_map = {
-            'CRITICAL': colors.red,
-            'HIGH': colors.orange,
-            'MEDIUM': colors.yellow,
-            'LOW': colors.lightgreen,
-            'MINIMAL': colors.lightgrey
-        }
-        
-        for level in ['CRITICAL', 'HIGH', 'MEDIUM', 'LOW', 'MINIMAL']:
-            count = threat_counts.get(level, 0)
-            percentage = (count / total) * 100
-            threat_data.append([level, str(count), f"{percentage:.1f}%"])
-        
-        threat_table = Table(threat_data, colWidths=[2*inch, 1.5*inch, 1.5*inch])
-        threat_table.setStyle(TableStyle([
-            ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#34495e')),
-            ('TEXTCOLOR', (0, 0), (-1, 0), colors.whitesmoke),
-            ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
-            ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
-            ('FONTSIZE', (0, 0), (-1, 0), 12),
-            ('FONTSIZE', (0, 1), (-1, -1), 10),
-            ('GRID', (0, 0), (-1, -1), 1, colors.black),
-            ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
-            ('TOPPADDING', (0, 0), (-1, -1), 8),
-            ('BOTTOMPADDING', (0, 0), (-1, -1), 8),
-        ]))
-        
-        # Color code threat levels
-        for i, level in enumerate(['CRITICAL', 'HIGH', 'MEDIUM', 'LOW', 'MINIMAL'], 1):
-            if level in threat_colors_map:
-                threat_table.setStyle(TableStyle([
-                    ('BACKGROUND', (0, i), (0, i), threat_colors_map[level])
-                ]))
-        
-        story.append(threat_table)
-        story.append(Spacer(1, 0.3*inch))
-        
-        # Threat Distribution Chart
-        if threat_counts:
-            chart_path = self._create_threat_chart(threat_counts)
-            if chart_path and os.path.exists(chart_path):
-                img = RLImage(chart_path, width=5*inch, height=3*inch)
-                story.append(img)
-                story.append(Spacer(1, 0.3*inch))
-        
-        story.append(PageBreak())
-        
-        # Screenshot Section
-        story.append(Paragraph("Detection Screenshots", self.heading_style))
-        story.append(Spacer(1, 0.2*inch))
-        
-        # Add screenshots
-        for frame_num, frame_img in annotated_frames:
-            # Save frame temporarily to OUTPUT_DIR (parent folder)
-            temp_img_path = OUTPUT_DIR / f"temp_frame_{frame_num}.jpg"
-            temp_img_path_abs = temp_img_path.absolute()
-            
-            # Write image file
-            success = cv2.imwrite(str(temp_img_path_abs), frame_img)
-            if not success:
-                print(f"⚠️  Failed to write temp image: {temp_img_path_abs}")
-                continue
-            
-            # Verify file exists
-            if not temp_img_path_abs.exists():
-                print(f"⚠️  Temp image doesn't exist: {temp_img_path_abs}")
-                continue
-            
-            # Add to PDF (use absolute path with forward slashes for reportlab)
-            story.append(Paragraph(f"Frame {frame_num}", self.styles['Heading3']))
-            img_path_for_pdf = str(temp_img_path_abs).replace('\\', '/')
-            img = RLImage(img_path_for_pdf, width=6*inch, height=4.8*inch)
-            story.append(img)
-            story.append(Spacer(1, 0.3*inch))
-            
-            # Find detection info for this frame
-            frame_detections = [d for d in detections_log if d.get('frame') == frame_num]
-            if frame_detections and len(frame_detections[0].get('detections', [])) > 0:
-                det_info = []
-                for det in frame_detections[0]['detections']:
-                    det_info.append([
-                        f"ID: {det.get('object_id', 'N/A')}",
-                        det.get('class_name', 'Unknown'),
-                        f"{det.get('threat_level', 'N/A')} ({det.get('threat_score', 0):.0f}%)",
-                        ', '.join(det.get('indicators', [])[:2]) or 'None'
-                    ])
-                
-                if det_info:
-                    det_table = Table([["ID", "Class", "Threat", "Indicators"]] + det_info,
-                                    colWidths=[1*inch, 1.5*inch, 2*inch, 2*inch])
-                    det_table.setStyle(TableStyle([
-                        ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#95a5a6')),
-                        ('TEXTCOLOR', (0, 0), (-1, 0), colors.whitesmoke),
-                        ('ALIGN', (0, 0), (-1, -1), 'LEFT'),
-                        ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
-                        ('FONTSIZE', (0, 0), (-1, -1), 9),
-                        ('GRID', (0, 0), (-1, -1), 0.5, colors.grey),
-                        ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
-                        ('TOPPADDING', (0, 0), (-1, -1), 6),
-                        ('BOTTOMPADDING', (0, 0), (-1, -1), 6),
-                    ]))
-                    story.append(det_table)
-            
-            story.append(PageBreak())
-            
-            # Clean up temp file
-            try:
-                os.remove(temp_img_path)
-            except:
-                pass
-        
-        # Build PDF
-        doc.build(story)
-        
-        # Clean up chart
-        chart_path = OUTPUT_DIR / "threat_distribution_chart.png"
-        if os.path.exists(chart_path):
-            try:
-                os.remove(chart_path)
-            except:
-                pass
-        
-        return output_path
-    
-    def _create_threat_chart(self, threat_counts: Dict) -> str:
-        """Create threat distribution pie chart"""
-        chart_path = OUTPUT_DIR / "threat_distribution_chart.png"
-        
-        levels = []
-        counts = []
-        colors_list = []
-        
-        color_map = {
-            'CRITICAL': '#e74c3c',
-            'HIGH': '#e67e22',
-            'MEDIUM': '#f39c12',
-            'LOW': '#2ecc71',
-            'MINIMAL': '#95a5a6'
-        }
-        
-        for level in ['CRITICAL', 'HIGH', 'MEDIUM', 'LOW', 'MINIMAL']:
-            count = threat_counts.get(level, 0)
-            if count > 0:
-                levels.append(level)
-                counts.append(count)
-                colors_list.append(color_map[level])
-        
-        if not counts:
-            return None
-        
-        plt.figure(figsize=(8, 6))
-        plt.pie(counts, labels=levels, autopct='%1.1f%%', colors=colors_list,
-                startangle=90, textprops={'fontsize': 12, 'weight': 'bold'})
-        plt.title('Threat Distribution', fontsize=16, weight='bold', pad=20)
-        plt.axis('equal')
-        plt.tight_layout()
-        plt.savefig(chart_path, dpi=150, bbox_inches='tight')
-        plt.close()
-        
-        return str(chart_path)
-
-# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 # CONFIGURATION
 # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
@@ -346,17 +85,6 @@ GEMINI_MODEL = "gemini-flash-latest"
 # Output Configuration
 OUTPUT_DIR = Path("threat_analysis_results")
 OUTPUT_DIR.mkdir(exist_ok=True)
-
-# Organized subdirectories
-VIDEO_DIR = OUTPUT_DIR / "videos"
-JSON_DIR = OUTPUT_DIR / "json_logs"
-PDF_DIR = OUTPUT_DIR / "pdf_reports"
-IMAGE_DIR = OUTPUT_DIR / "images"
-
-VIDEO_DIR.mkdir(exist_ok=True)
-JSON_DIR.mkdir(exist_ok=True)
-PDF_DIR.mkdir(exist_ok=True)
-IMAGE_DIR.mkdir(exist_ok=True)
 
 # Threat Thresholds
 THREAT_THRESHOLDS = {
@@ -1094,14 +822,13 @@ class HybridDetector:
         # Save
         if output_path is None:
             timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-            output_path = IMAGE_DIR / f"hybrid_image_{timestamp}.jpg"
+            output_path = OUTPUT_DIR / f"hybrid_image_{timestamp}.jpg"
         
         cv2.imwrite(str(output_path), annotated)
         print(f"✓ Saved to: {output_path}")
         
         # Save JSON
-        json_filename = Path(output_path).stem + '.json'
-        json_path = JSON_DIR / json_filename
+        json_path = Path(str(output_path).replace('.jpg', '.json'))
         with open(json_path, 'w') as f:
             json.dump({
                 'source': image_path,
@@ -1123,7 +850,7 @@ class HybridDetector:
         cv2.waitKey(0)
         cv2.destroyAllWindows()
     
-    def run_video(self, video_path: str, output_path: str = None, show: bool = True, generate_pdf: bool = True):
+    def run_video(self, video_path: str, output_path: str = None, show: bool = True):
         """Process a video file"""
         print(f"\n{'='*80}")
         print(f"PROCESSING VIDEO: {video_path}")
@@ -1145,14 +872,13 @@ class HybridDetector:
         # Setup output
         if output_path is None:
             timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-            output_path = VIDEO_DIR / f"hybrid_video_{timestamp}.mp4"
+            output_path = OUTPUT_DIR / f"hybrid_video_{timestamp}.mp4"
         
         fourcc = cv2.VideoWriter_fourcc(*'mp4v')
         out = cv2.VideoWriter(str(output_path), fourcc, fps, (width, height))
         
-        # JSON log and screenshot collection
+        # JSON log
         json_log = []
-        screenshot_frames = []  # Store frames for PDF report
         
         try:
             while cap.isOpened():
@@ -1171,15 +897,6 @@ class HybridDetector:
                         'timestamp': timestamp,
                         'detections': detections
                     })
-                    
-                    # Collect screenshots for PDF (sample: every 30 frames with detections or HIGH/CRITICAL threats)
-                    should_screenshot = (
-                        self.frame_count % 30 == 0 or
-                        any(d.get('threat_level') in ['HIGH', 'CRITICAL'] for d in detections)
-                    )
-                    
-                    if should_screenshot and len(screenshot_frames) < 20:  # Limit to 20 screenshots
-                        screenshot_frames.append((self.frame_count, annotated.copy()))
                 
                 if show:
                     cv2.imshow('Hybrid Threat Analysis', annotated)
@@ -1203,8 +920,7 @@ class HybridDetector:
         print(f"✓ Video saved to: {output_path}")
         
         # Save JSON log
-        json_filename = Path(output_path).stem + '.json'
-        json_path = JSON_DIR / json_filename
+        json_path = Path(str(output_path).replace('.mp4', '.json'))
         with open(json_path, 'w') as f:
             json.dump({
                 'source': video_path,
@@ -1214,24 +930,6 @@ class HybridDetector:
             }, f, indent=2)
         
         print(f"✓ JSON log saved to: {json_path}")
-        
-        # Generate PDF report
-        if generate_pdf and (json_log or screenshot_frames):
-            print(f"\n📄 Generating PDF report...")
-            try:
-                pdf_generator = PDFReportGenerator(PDF_DIR)
-                pdf_path = pdf_generator.generate_report(
-                    video_path=video_path,
-                    stats=dict(self.stats),
-                    detections_log=json_log,
-                    annotated_frames=screenshot_frames
-                )
-                print(f"✓ PDF report saved to: {pdf_path}")
-            except Exception as e:
-                print(f"⚠️  PDF generation failed: {e}")
-                import traceback
-                traceback.print_exc()
-        
         self.print_final_stats()
     
     def run_camera(self, camera_id: int = 0, save_output: bool = False):
@@ -1255,7 +953,7 @@ class HybridDetector:
         out = None
         if save_output:
             timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-            output_path = VIDEO_DIR / f"hybrid_camera_{timestamp}.mp4"
+            output_path = OUTPUT_DIR / f"hybrid_camera_{timestamp}.mp4"
             fourcc = cv2.VideoWriter_fourcc(*'mp4v')
             out = cv2.VideoWriter(str(output_path), fourcc, fps, (width, height))
             print(f"✓ Recording to: {output_path}")
@@ -1280,7 +978,7 @@ class HybridDetector:
                     break
                 elif key == ord('s'):
                     timestamp_str = datetime.now().strftime("%Y%m%d_%H%M%S")
-                    screenshot_path = IMAGE_DIR / f"screenshot_{timestamp_str}.jpg"
+                    screenshot_path = OUTPUT_DIR / f"screenshot_{timestamp_str}.jpg"
                     cv2.imwrite(str(screenshot_path), annotated)
                     print(f"📸 Screenshot: {screenshot_path}")
         
@@ -1350,10 +1048,6 @@ Examples:
                        help='Enable Gemini Vision enrichment (default: enabled)')
     parser.add_argument('--no-gemini', action='store_true',
                        help='Disable Gemini (YOLO + tracking only)')
-    parser.add_argument('--pdf', action='store_true', default=True,
-                       help='Generate PDF report with screenshots (default: enabled)')
-    parser.add_argument('--no-pdf', action='store_true',
-                       help='Disable PDF report generation')
     
     return parser.parse_args()
 
@@ -1372,9 +1066,6 @@ def main():
     
     # Determine Gemini usage
     use_gemini = args.use_gemini and not args.no_gemini
-    
-    # Determine PDF generation
-    generate_pdf = args.pdf and not args.no_pdf
     
     # Initialize detector
     detector = HybridDetector(
@@ -1396,7 +1087,7 @@ def main():
         if not Path(source).exists():
             print(f"❌ Error: Video file not found")
             return
-        detector.run_video(source, output_path=args.output, show=args.show, generate_pdf=generate_pdf)
+        detector.run_video(source, output_path=args.output, show=args.show)
     elif source.lower().endswith(('.jpg', '.jpeg', '.png', '.bmp', '.webp')):
         # Image
         if not Path(source).exists():

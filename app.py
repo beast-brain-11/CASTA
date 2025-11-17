@@ -23,9 +23,27 @@ import google.generativeai as genai
 from PIL import Image
 import io
 from dotenv import load_dotenv
+import torch
 
 # Load environment variables from .env file
 load_dotenv()
+
+# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+# GPU DETECTION
+# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+def detect_gpu():
+    """Detect and report GPU availability"""
+    if torch.cuda.is_available():
+        gpu_name = torch.cuda.get_device_name(0)
+        gpu_memory = torch.cuda.get_device_properties(0).total_memory / (1024**3)  # GB
+        print(f"🎮 GPU Detected: {gpu_name}")
+        print(f"   VRAM: {gpu_memory:.1f} GB")
+        print(f"   CUDA Version: {torch.version.cuda}")
+        return True
+    else:
+        print("⚠️  No GPU detected - running on CPU (slower)")
+        return False
 
 # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 # CONFIGURATION
@@ -1001,6 +1019,10 @@ def main():
     print("║" + " "*15 + "Cognitive Aerial Spatio-Temporal Analysis" + " "*22 + "║")
     print("║" + " "*20 + "Roboflow YOLO + Gemini Vision" + " "*29 + "║")
     print("╚" + "═"*78 + "╝\n")
+    
+    # Detect GPU
+    detect_gpu()
+    print()
     
     args = parse_args()
     

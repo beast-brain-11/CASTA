@@ -600,9 +600,23 @@ class HybridDetector:
             class_name = detections['class_name'][det_idx] if 'class_name' in detections.data else f"class_{detections.class_id[det_idx]}"
             yolo_confidence = detections.confidence[det_idx]
             
-            # Step 4: Gemini enrichment (for HIGH/CRITICAL threats)
+            # Step 4: Gemini enrichment
             gemini_result = None
-            if self.use_gemini and threat_level in ['HIGH', 'CRITICAL']:
+            should_call_gemini = False
+            
+            # Determine if we should call Gemini
+            if self.use_gemini:
+                # Always call for HIGH/CRITICAL threats
+                if threat_level in ['HIGH', 'CRITICAL']:
+                    should_call_gemini = True
+                # For MEDIUM threats, call every 10 frames
+                elif threat_level == 'MEDIUM' and self.frame_count % 10 == 0:
+                    should_call_gemini = True
+                # For LOW/MINIMAL, call every 30 frames (sampling)
+                elif self.frame_count % 30 == 0:
+                    should_call_gemini = True
+            
+            if should_call_gemini:
                 # Crop detection region with padding
                 x1, y1, x2, y2 = map(int, bbox)
                 h, w = frame.shape[:2]
@@ -621,6 +635,10 @@ class HybridDetector:
                 if crop.size > 0:
                     gemini_result = self.gemini.analyze_drone(crop, class_name, threat_level)
                     self.stats['gemini_calls'] += 1
+                    
+                    # Log Gemini call
+                    if self.frame_count % 30 == 0 or threat_level in ['HIGH', 'CRITICAL', 'MEDIUM']:
+                        print(f"   🤖 Gemini analyzed frame {self.frame_count}: {threat_level} → {class_name}")
                     
                     # Adjust threat based on Gemini tags
                     if 'PAYLOAD_VISIBLE' in gemini_result.get('semantic_tags', []):

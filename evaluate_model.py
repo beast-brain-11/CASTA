@@ -16,6 +16,11 @@ from sklearn.metrics import confusion_matrix, classification_report
 from dotenv import load_dotenv
 import json
 from tqdm import tqdm
+import warnings
+
+# Suppress warnings
+warnings.filterwarnings('ignore')
+os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
 
 load_dotenv()
 
@@ -59,10 +64,25 @@ class ModelEvaluator:
             return str(output_path)
         
         print(f"📥 Downloading test dataset...")
-        location = self.dataset.download("yolov11", location=output_dir)
-        print(f"✓ Downloaded to: {location}")
         
-        return location
+        # Try YOLOv12 first (your model), then fall back to other YOLO formats
+        # All YOLO formats use the same annotation structure
+        formats_to_try = ["yolov12", "yolov11", "yolov8", "yolov5"]
+        
+        for fmt in formats_to_try:
+            try:
+                print(f"   Attempting format: {fmt}...")
+                dataset_obj = self.dataset.download(fmt, location=output_dir)
+                # The actual path is the location parameter we provided
+                actual_path = Path(output_dir) / self.project.name
+                print(f"✓ Successfully downloaded using format: {fmt}")
+                print(f"✓ Dataset location: {actual_path}")
+                return str(actual_path)
+            except Exception as e:
+                print(f"   ✗ Format '{fmt}' failed: {str(e)[:50]}...")
+                continue
+        
+        raise Exception("❌ Could not download dataset - no compatible YOLO format found")
     
     def load_ground_truth(self, dataset_path: str):
         """Load ground truth annotations from test set"""

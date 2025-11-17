@@ -29,6 +29,27 @@ import torch
 load_dotenv()
 
 # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+# JSON SERIALIZATION HELPER
+# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+def convert_to_json_serializable(obj):
+    """Convert numpy types and other non-serializable objects to JSON-compatible types"""
+    if isinstance(obj, np.integer):
+        return int(obj)
+    elif isinstance(obj, np.floating):
+        return float(obj)
+    elif isinstance(obj, np.ndarray):
+        return obj.tolist()
+    elif isinstance(obj, np.bool_):
+        return bool(obj)
+    elif isinstance(obj, dict):
+        return {k: convert_to_json_serializable(v) for k, v in obj.items()}
+    elif isinstance(obj, (list, tuple)):
+        return [convert_to_json_serializable(item) for item in obj]
+    else:
+        return obj
+
+# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 # GPU DETECTION
 # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
@@ -621,8 +642,7 @@ class HybridDetector:
                 'threat_score': threat_score,
                 'threat_level': threat_level,
                 'indicators': indicators,
-                'features': {k: float(v) if isinstance(v, (int, float, np.number)) else v 
-                            for k, v in features.items()},
+                'features': convert_to_json_serializable(features),
                 'trajectory': [pos for pos in history['positions']],
                 'gemini_analysis': gemini_result
             }
@@ -795,8 +815,8 @@ class HybridDetector:
             json.dump({
                 'source': image_path,
                 'timestamp': datetime.now().isoformat(),
-                'detections': detections,
-                'stats': dict(self.stats)
+                'detections': convert_to_json_serializable(detections),
+                'stats': convert_to_json_serializable(dict(self.stats))
             }, f, indent=2)
         
         print(f"✓ Metadata saved to: {json_path}")
@@ -887,8 +907,8 @@ class HybridDetector:
             json.dump({
                 'source': video_path,
                 'total_frames': self.frame_count,
-                'stats': dict(self.stats),
-                'frame_log': json_log
+                'stats': convert_to_json_serializable(dict(self.stats)),
+                'frame_log': convert_to_json_serializable(json_log)
             }, f, indent=2)
         
         print(f"✓ JSON log saved to: {json_path}")

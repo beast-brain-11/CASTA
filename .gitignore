@@ -11,6 +11,8 @@ ENV/
 
 # Results
 threat_analysis_results/
+evaluation_results/
+test_dataset/
 *.mp4
 *.avi
 *.mov

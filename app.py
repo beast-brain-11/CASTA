@@ -219,8 +219,8 @@ class PDFReportGenerator:
         
         # Add screenshots
         for frame_num, frame_img in annotated_frames:
-            # Save frame temporarily
-            temp_img_path = self.output_dir / f"temp_frame_{frame_num}.jpg"
+            # Save frame temporarily to OUTPUT_DIR (parent folder)
+            temp_img_path = OUTPUT_DIR / f"temp_frame_{frame_num}.jpg"
             cv2.imwrite(str(temp_img_path), frame_img)
             
             # Add to PDF
@@ -269,7 +269,7 @@ class PDFReportGenerator:
         doc.build(story)
         
         # Clean up chart
-        chart_path = self.output_dir / "threat_distribution_chart.png"
+        chart_path = OUTPUT_DIR / "threat_distribution_chart.png"
         if os.path.exists(chart_path):
             try:
                 os.remove(chart_path)
@@ -280,7 +280,7 @@ class PDFReportGenerator:
     
     def _create_threat_chart(self, threat_counts: Dict) -> str:
         """Create threat distribution pie chart"""
-        chart_path = self.output_dir / "threat_distribution_chart.png"
+        chart_path = OUTPUT_DIR / "threat_distribution_chart.png"
         
         levels = []
         counts = []

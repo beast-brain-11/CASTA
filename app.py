@@ -222,11 +222,22 @@ class PDFReportGenerator:
             # Save frame temporarily to OUTPUT_DIR (parent folder)
             temp_img_path = OUTPUT_DIR / f"temp_frame_{frame_num}.jpg"
             temp_img_path_abs = temp_img_path.absolute()
-            cv2.imwrite(str(temp_img_path_abs), frame_img)
+            
+            # Write image file
+            success = cv2.imwrite(str(temp_img_path_abs), frame_img)
+            if not success:
+                print(f"⚠️  Failed to write temp image: {temp_img_path_abs}")
+                continue
+            
+            # Verify file exists
+            if not temp_img_path_abs.exists():
+                print(f"⚠️  Temp image doesn't exist: {temp_img_path_abs}")
+                continue
             
             # Add to PDF (use absolute path with forward slashes for reportlab)
             story.append(Paragraph(f"Frame {frame_num}", self.styles['Heading3']))
-            img = RLImage(str(temp_img_path_abs).replace('\\', '/'), width=6*inch, height=4.8*inch)
+            img_path_for_pdf = str(temp_img_path_abs).replace('\\', '/')
+            img = RLImage(img_path_for_pdf, width=6*inch, height=4.8*inch)
             story.append(img)
             story.append(Spacer(1, 0.3*inch))
             

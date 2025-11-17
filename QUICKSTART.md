@@ -16,7 +16,11 @@ python app.py --source 0 --use-gemini --save-camera
 
 ### Video File Detection
 ```bash
+# Video with display and PDF report (default)
 python app.py --source video.mp4 --show
+
+# Video without PDF report
+python app.py --source video.mp4 --show --no-pdf
 ```
 
 ### Image Detection

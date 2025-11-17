@@ -221,11 +221,12 @@ class PDFReportGenerator:
         for frame_num, frame_img in annotated_frames:
             # Save frame temporarily to OUTPUT_DIR (parent folder)
             temp_img_path = OUTPUT_DIR / f"temp_frame_{frame_num}.jpg"
-            cv2.imwrite(str(temp_img_path), frame_img)
+            temp_img_path_abs = temp_img_path.absolute()
+            cv2.imwrite(str(temp_img_path_abs), frame_img)
             
-            # Add to PDF
+            # Add to PDF (use absolute path with forward slashes for reportlab)
             story.append(Paragraph(f"Frame {frame_num}", self.styles['Heading3']))
-            img = RLImage(str(temp_img_path), width=6*inch, height=4.8*inch)
+            img = RLImage(str(temp_img_path_abs).replace('\\', '/'), width=6*inch, height=4.8*inch)
             story.append(img)
             story.append(Spacer(1, 0.3*inch))
             

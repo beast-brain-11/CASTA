@@ -335,6 +335,17 @@ GEMINI_MODEL = "gemini-flash-latest"
 OUTPUT_DIR = Path("threat_analysis_results")
 OUTPUT_DIR.mkdir(exist_ok=True)
 
+# Organized subdirectories
+VIDEO_DIR = OUTPUT_DIR / "videos"
+JSON_DIR = OUTPUT_DIR / "json_logs"
+PDF_DIR = OUTPUT_DIR / "pdf_reports"
+IMAGE_DIR = OUTPUT_DIR / "images"
+
+VIDEO_DIR.mkdir(exist_ok=True)
+JSON_DIR.mkdir(exist_ok=True)
+PDF_DIR.mkdir(exist_ok=True)
+IMAGE_DIR.mkdir(exist_ok=True)
+
 # Threat Thresholds
 THREAT_THRESHOLDS = {
     'velocity': 50,           # pixels/frame for HIGH speed
@@ -1071,13 +1082,14 @@ class HybridDetector:
         # Save
         if output_path is None:
             timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-            output_path = OUTPUT_DIR / f"hybrid_image_{timestamp}.jpg"
+            output_path = IMAGE_DIR / f"hybrid_image_{timestamp}.jpg"
         
         cv2.imwrite(str(output_path), annotated)
         print(f"✓ Saved to: {output_path}")
         
         # Save JSON
-        json_path = Path(str(output_path).replace('.jpg', '.json'))
+        json_filename = Path(output_path).stem + '.json'
+        json_path = JSON_DIR / json_filename
         with open(json_path, 'w') as f:
             json.dump({
                 'source': image_path,
@@ -1121,7 +1133,7 @@ class HybridDetector:
         # Setup output
         if output_path is None:
             timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-            output_path = OUTPUT_DIR / f"hybrid_video_{timestamp}.mp4"
+            output_path = VIDEO_DIR / f"hybrid_video_{timestamp}.mp4"
         
         fourcc = cv2.VideoWriter_fourcc(*'mp4v')
         out = cv2.VideoWriter(str(output_path), fourcc, fps, (width, height))
@@ -1179,7 +1191,8 @@ class HybridDetector:
         print(f"✓ Video saved to: {output_path}")
         
         # Save JSON log
-        json_path = Path(str(output_path).replace('.mp4', '.json'))
+        json_filename = Path(output_path).stem + '.json'
+        json_path = JSON_DIR / json_filename
         with open(json_path, 'w') as f:
             json.dump({
                 'source': video_path,
@@ -1194,7 +1207,7 @@ class HybridDetector:
         if generate_pdf and (json_log or screenshot_frames):
             print(f"\n📄 Generating PDF report...")
             try:
-                pdf_generator = PDFReportGenerator(OUTPUT_DIR)
+                pdf_generator = PDFReportGenerator(PDF_DIR)
                 pdf_path = pdf_generator.generate_report(
                     video_path=video_path,
                     stats=dict(self.stats),
@@ -1204,6 +1217,8 @@ class HybridDetector:
                 print(f"✓ PDF report saved to: {pdf_path}")
             except Exception as e:
                 print(f"⚠️  PDF generation failed: {e}")
+                import traceback
+                traceback.print_exc()
         
         self.print_final_stats()
     
@@ -1228,7 +1243,7 @@ class HybridDetector:
         out = None
         if save_output:
             timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-            output_path = OUTPUT_DIR / f"hybrid_camera_{timestamp}.mp4"
+            output_path = VIDEO_DIR / f"hybrid_camera_{timestamp}.mp4"
             fourcc = cv2.VideoWriter_fourcc(*'mp4v')
             out = cv2.VideoWriter(str(output_path), fourcc, fps, (width, height))
             print(f"✓ Recording to: {output_path}")
@@ -1253,7 +1268,7 @@ class HybridDetector:
                     break
                 elif key == ord('s'):
                     timestamp_str = datetime.now().strftime("%Y%m%d_%H%M%S")
-                    screenshot_path = OUTPUT_DIR / f"screenshot_{timestamp_str}.jpg"
+                    screenshot_path = IMAGE_DIR / f"screenshot_{timestamp_str}.jpg"
                     cv2.imwrite(str(screenshot_path), annotated)
                     print(f"📸 Screenshot: {screenshot_path}")
         
